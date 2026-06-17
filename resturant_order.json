@@ -1,0 +1,696 @@
+{
+  "name": "find jobs",
+  "nodes": [
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a77aa7d6-3604-42e2-b0f9-6ed9ab38ba46",
+                    "leftValue": "={{ $json.output.is_first_message }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "first message"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "2d09694e-76af-4733-8e04-5687fe31fc98",
+                    "leftValue": "={{ $json.output.is_order }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ordre"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -400,
+        288
+      ],
+      "id": "02f36891-a2d9-40b7-96d7-5bdaebf64050",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "url": "https://i.ibb.co/bMdw1SB9/1131w-Uojx-ZFja-QDg.webp",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -176,
+        80
+      ],
+      "id": "4b347c5e-a571-49f2-bda8-5d3ed4b91c61",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "={{ $('user').item.json.message.chat.id }}",
+        "binaryData": true,
+        "additionalFields": {
+          "caption": "={{ $('AI Agent').item.json.output.response }}"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        0
+      ],
+      "id": "6519a392-086c-41ef-ba3d-18ad62f20e33",
+      "name": "Send a photo message",
+      "webhookId": "459178bc-e17b-4ff2-9df6-bd33636cdb4c",
+      "credentials": {
+        "telegramApi": {
+          "id": "qNXTjifFenGiOHc3",
+          "name": "Telegram account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=# ROLE\nYou are a highly professional, smart, and strict customer service assistant taking orders for a restaurant (مطعم علامة). Your absolute priority is to track the conversation flow logically and NEVER restart the conversation from the beginning if the customer has already customized their order.\n\n# LANGUAGE & TONE RULES\n- Respond ONLY in natural, polite Egyptian Arabic (عامية مصرية راقية ومحترمة).\n- STRICT RULE: NEVER repeat greetings like \"أهلاً وسهلاً بحضرتك\" or \"منورنا\" after the first message. If the customer already started ordering, immediately jump to the next logical step.\n\n# MENU & AVAILABILITY\n- Menu:\n  * برجر بيف\n  * برجر تشيكن\n  * بطاطس\n  * كولا\n\n# CRITICAL MEMORY & SHORT ANSWER RULE\n- You must always link short answers (like numbers: \"7\", \"3\" or words: \"بيف\", \"فراخ\") to your previous question.\n- If you just asked \"كام قطعة؟\" and the user replies with a number like \"7\", you MUST understand that they want \"7 قطع\" from the item you were just discussing. DO NOT restart the chat! Move immediately to Step 2 (Phone Collection).\n\n# ORDER WORKFLOW (STRICT SYSTEM STATE)\n1. Order Collection: Once the item name, type (بيف/تشيكن), and quantity are known (even if provided across multiple messages), this step is 100% COMPLETE. Move to step 2.\n2. Phone Collection: Ask for the phone number directly. (e.g., \"تمام يا فندم، قيدت لحضرتك الأوردر. عشان نكمله، ممكن رقم الموبايل؟\").\n3. Location Collection: Ask for the location only after getting the phone number.\n4. Final Confirmation: Summarize everything and use the phrase \"تمام الطلب اتأكد.\"\n\n# OUTPUT FORMAT (CRITICAL)\nYou MUST respond ONLY with a valid JSON object matching the template below. No markdown formatting outside the JSON.\n\nJSON Schema Instructions:\n- \"response\": Put your natural Egyptian Arabic reply to the customer here.\n- \"is_first_message\": `false` (set to true only on the very first greeting).\n- \"is_order\": `true` once they start choosing items.\n- \"is_order_confirmed\": `true` only at the final step when they confirm the whole summary.\n- \"needs_phone\": `true` if you are asking for the phone number right now.\n- \"needs_location\": `true` if you are asking for the location right now.\n- \"customer_phone\": Extract the phone number if provided, else \"\".\n- \"customer_location\": Extract the location if provided, else \"\".\n- \"order_items\": Keep it updated with exact items: [{\"item_name\": \"برجر بيف\", \"quantity\": 5}].\n- \"final_data\": An object containing the consolidated customer details gathered so far. It must include:\n    * \"ordered_items\": A text summary or list of the items, variations, and quantities (e.g., \"7 قطع برجر بيف\"). Keep updating this as data comes in.\n    * \"phone\": The extracted phone number once available.\n    * \"location\": The customer's address or location details once available.\n\nTemplate:\n{\n  \"response\": \"نص الرد بالعامية المصرية هنا\",\n  \"is_first_message\": false,\n  \"is_order\": true,\n  \"is_order_confirmed\": false,\n  \"needs_phone\": false,\n  \"needs_location\": false,\n  \"customer_phone\": \"\",\n  \"customer_location\": \"\",\n  \"order_items\": [],\n  \"final_data\": {\n    \"ordered_items\": \"\",\n    \"phone\": \"\",\n    \"location\": \"\"\n  }\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -864,
+        304
+      ],
+      "id": "f0919256-85df-4fe4-b487-64fa231f93f7",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-chat-v3-0324",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        528
+      ],
+      "id": "c894bae9-5e9e-42d0-9c6f-ae074f1a0984",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "7pXEYj78a46L7PQx",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"response\": \"نص الرد هنا\",\n  \"is_first_message\": false,\n  \"is_order\": false,\n  \"is_order_confirmed\": false,\n  \"needs_phone\": false,\n  \"needs_location\": false,\n  \"customer_phone\": \"\",\n  \"customer_location\": \"\",\n  \"order_items\": [],\n  \"final_data\": {\n    \"ordered_items\": \"\",\n    \"phone\": \"\",\n    \"location\": \"\"\n  }\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -864,
+        544
+      ],
+      "id": "0554a763-bce6-4975-839d-d350168958fb",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('user').item.json.message.chat.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -1040,
+        560
+      ],
+      "id": "d7e495d7-967e-41ce-9094-8cafc37f784a",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {
+          "download": true
+        }
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1136,
+        48
+      ],
+      "id": "99cd08bf-dc09-4b53-b706-8847c92dd3ed",
+      "name": "manager",
+      "webhookId": "adc288c5-b6f1-4e79-b2a9-202554edca39",
+      "credentials": {
+        "telegramApi": {
+          "id": "bgt605aGKrao4SjC",
+          "name": "Telegram account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('user').item.json.message.chat.id }}",
+        "text": "={{ $('AI Agent').item.json.output.response }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -96,
+        368
+      ],
+      "id": "b10d8638-78e9-4fcf-8279-26e5ad908344",
+      "name": "Send a text message",
+      "webhookId": "6dd8258f-049b-4996-8e18-dda6b6a30d03",
+      "credentials": {
+        "telegramApi": {
+          "id": "qNXTjifFenGiOHc3",
+          "name": "Telegram account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.location }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "d10b1d11-b38f-4dc0-97e0-3a7290d26669"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "location"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "093f72c5-348a-4ed6-aae8-a411799b53fe",
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -1456,
+        304
+      ],
+      "id": "0ac922f4-1a01-42df-8783-c3c3913735f7",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('AI Agent').item.json.output.final_data }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "6e00035d-1d4b-4f37-9e0f-d1c2bd48dd52"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        112,
+        368
+      ],
+      "id": "2bd86693-cf34-4759-b205-d7d1d3e278b9",
+      "name": "Switch2"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "output_items = []\n\nfor item in _items:\n    text = item[\"json\"][\"result\"][\"text\"]\n    \n    phone = \"\"\n    address = \"\"\n    order_items = []\n    ordered_items_text = \"\"\n    \n    # توحيد الفواصل: هنحول أي سطر جديد أو فاصلة لنقطة عشان نقسم الجمل صح\n    normalized_text = text.replace('\\n', '.').replace('،', '.')\n    parts = normalized_text.split('.')\n    \n    for part in parts:\n        cleaned_part = part.strip()\n        \n        # 1. استخراج رقم الموبايل\n        if \"رقم الموبايل:\" in cleaned_part:\n            phone = cleaned_part.split(\"رقم الموبايل:\")[1].strip()\n            \n        # 2. استخراج العنوان\n        elif \"العنوان:\" in cleaned_part:\n            address = cleaned_part.split(\"العنوان:\")[1].strip()\n            \n        # 3. استخراج تفاصيل الأوردر (لو مكتوبة في نفس السطر)\n        elif \"تفاصيل الأوردر:\" in cleaned_part:\n            ordered_items_text = cleaned_part.split(\"تفاصيل الأوردر:\")[1].strip()\n            \n        # 4. استخراج الأوردر (لو لسه بيكتبها في سطور بتبدأ بـ شرطة)\n        elif cleaned_part.startswith('-'):\n            item_text = cleaned_part.replace('-', '').strip()\n            order_items.append(item_text)\n\n    # لو لقاها بنظام الشرط، يجمعهم\n    if order_items and not ordered_items_text:\n        ordered_items_text = \" + \".join(order_items)\n\n    # بنضيف الخانات الجديدة جوة الـ JSON الأساسي\n    item[\"json\"][\"ordered_items\"] = ordered_items_text\n    item[\"json\"][\"phone\"] = phone\n    item[\"json\"][\"location\"] = address\n    \n    output_items.append(item)\n\nreturn output_items"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        368
+      ],
+      "id": "3df15224-5de9-4c6f-a98f-6b05b6355c34",
+      "name": "Code in Python"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1648,
+        304
+      ],
+      "id": "009c8e70-3812-4d07-bf9d-912ef1dfe94c",
+      "name": "user",
+      "webhookId": "2088af06-7754-49c4-8cd4-ccca16e4299d",
+      "credentials": {
+        "telegramApi": {
+          "id": "qNXTjifFenGiOHc3",
+          "name": "Telegram account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1-8AgBV6-FFf7oxvsbJrFMxgECveAW10j8lOq9UmPh4Q",
+          "mode": "list",
+          "cachedResultName": "alama_resturant_orders",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-8AgBV6-FFf7oxvsbJrFMxgECveAW10j8lOq9UmPh4Q/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "الورقة1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-8AgBV6-FFf7oxvsbJrFMxgECveAW10j8lOq9UmPh4Q/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Order": "={{ $json.ordered_items }}",
+            "Address": "={{ $json.location }}",
+            "Phone_Nummber": "={{ $json.phone }}",
+            "Client_name": "={{ $json.result.chat.first_name }}"
+          },
+          "matchingColumns": [
+            "Order"
+          ],
+          "schema": [
+            {
+              "id": "Client_name",
+              "displayName": "Client_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Order",
+              "displayName": "Order",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Address",
+              "displayName": "Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone_Nummber",
+              "displayName": "Phone_Nummber",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        736,
+        368
+      ],
+      "id": "e53ef0ff-bc78-472b-aaa2-3a94f1158ed8",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "6DSQbr3JNawRXn1s",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.location }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    },
+                    "id": "6101e03f-e7b0-49b4-8777-081f4a3820f4"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        528,
+        368
+      ],
+      "id": "e35c669b-0d29-4c0c-afc2-2cfcd2a43590",
+      "name": "Switch3"
+    },
+    {
+      "parameters": {
+        "content": "# sending Menu to user",
+        "height": 336,
+        "width": 560
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -240,
+        -80
+      ],
+      "typeVersion": 1,
+      "id": "2679e205-1a7e-4154-8cc7-1e1292cfa465",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "# chat with user and add order to sheets",
+        "height": 304,
+        "width": 1088,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -144,
+        288
+      ],
+      "typeVersion": 1,
+      "id": "cd13dde9-a303-4aa2-931f-b290c6bba143",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Send a photo message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "manager": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Switch2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch2": {
+      "main": [
+        [
+          {
+            "node": "Code in Python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in Python": {
+      "main": [
+        [
+          {
+            "node": "Switch3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "user": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch3": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "569c24c5-8f38-41d3-aeac-672e63bbafc8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "343f807e8d1d0bdfb1fded4c377dd437201fdbfac43fef1ef97d5d945f99f851"
+  },
+  "nodeGroups": [],
+  "id": "ovrtAmwuvlUBVE71",
+  "tags": []
+}
